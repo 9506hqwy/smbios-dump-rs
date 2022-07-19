@@ -26,6 +26,9 @@ fn main() -> Result<(), Error> {
             1 => SystemInformation::from_table(&smbios, &table)
                 .dump(&mut std::io::stdout())
                 .unwrap(),
+            2 => BaseBoardInformation::from_table(&smbios, &table)
+                .dump(&mut std::io::stdout())
+                .unwrap(),
             _ => table.dump(&mut std::io::stdout()).unwrap(),
         }
 
@@ -506,6 +509,192 @@ impl SystemInformation {
             6 => "Power Switch",
             7 => "PCI PME#",
             8 => "AC Power Restored",
+            _ => unreachable!(),
+        }
+    }
+}
+
+pub struct BaseBoardInformation {
+    pub table_ty: u8,
+    pub length: u8,
+    pub handle: u16,
+    pub manufacturer: Option<String>,
+    pub product: Option<String>,
+    pub version: Option<String>,
+    pub serial_number: Option<String>,
+    pub asset_tag: Option<String>,
+    pub feature_flags: Option<u8>,
+    pub location: Option<String>,
+    pub chassis_handle: Option<u16>,
+    pub board_ty: Option<u8>,
+    pub num_contained_object: Option<u8>,
+    pub contained_object_handle: Option<Vec<u16>>,
+}
+
+impl BaseBoardInformation {
+    pub fn from_table(_smbios: &RawSmbiosData, table: &RawSmbiosTable) -> Self {
+        let mut data = table.body.clone();
+
+        let manufacturer_idx = if data.remaining() > 0 {
+            Some(data.get_u8())
+        } else {
+            None
+        };
+        let product_idx = if data.remaining() > 0 {
+            Some(data.get_u8())
+        } else {
+            None
+        };
+        let version_idx = if data.remaining() > 0 {
+            Some(data.get_u8())
+        } else {
+            None
+        };
+        let serial_number_idx = if data.remaining() > 0 {
+            Some(data.get_u8())
+        } else {
+            None
+        };
+        let asset_tag_idx = if data.remaining() > 0 {
+            Some(data.get_u8())
+        } else {
+            None
+        };
+        let feature_flags = if data.remaining() > 0 {
+            Some(data.get_u8())
+        } else {
+            None
+        };
+        let location_idx = if data.remaining() > 0 {
+            Some(data.get_u8())
+        } else {
+            None
+        };
+        let chassis_handle = if data.remaining() > 0 {
+            Some(data.get_u16())
+        } else {
+            None
+        };
+        let board_ty = if data.remaining() > 0 {
+            Some(data.get_u8())
+        } else {
+            None
+        };
+        let num_contained_object = if data.remaining() > 0 {
+            Some(data.get_u8())
+        } else {
+            None
+        };
+        let contained_object_handle = if let Some(num) = num_contained_object {
+            let mut tmp = vec![];
+            for _ in 0..num {
+                tmp.push(data.get_u16());
+            }
+            Some(tmp)
+        } else {
+            None
+        };
+
+        let manufacturer = manufacturer_idx.map(|idx| table.get_string_by_index(idx).unwrap());
+        let product = product_idx.map(|idx| table.get_string_by_index(idx).unwrap());
+        let version = version_idx.map(|idx| table.get_string_by_index(idx).unwrap());
+        let serial_number = serial_number_idx.map(|idx| table.get_string_by_index(idx).unwrap());
+        let asset_tag = asset_tag_idx.map(|idx| table.get_string_by_index(idx).unwrap());
+        let location = location_idx.map(|idx| table.get_string_by_index(idx).unwrap());
+
+        BaseBoardInformation {
+            table_ty: table.table_ty,
+            length: table.length,
+            handle: table.handle,
+            manufacturer,
+            product,
+            version,
+            serial_number,
+            asset_tag,
+            feature_flags,
+            location,
+            chassis_handle,
+            board_ty,
+            num_contained_object,
+            contained_object_handle,
+        }
+    }
+
+    pub fn dump(&self, writer: &mut impl Write) -> std::io::Result<()> {
+        writer.write_fmt(format_args!(
+            "Handle 0x{:04X}, DMI type {}, {} bytes\n",
+            self.handle, self.table_ty, self.length
+        ))?;
+
+        writer.write_fmt(format_args!("Base Board Information\n"))?;
+        if let Some(manufacturer) = &self.manufacturer {
+            writer.write_fmt(format_args!("\tManufacturer: {}\n", manufacturer))?;
+        }
+        if let Some(product) = &self.product {
+            writer.write_fmt(format_args!("\tProduct Name: {}\n", product))?;
+        }
+        if let Some(version) = &self.version {
+            writer.write_fmt(format_args!("\tVersion: {}\n", version))?;
+        }
+        if let Some(serial_number) = &self.serial_number {
+            writer.write_fmt(format_args!("\tSerial Number: {}\n", serial_number))?;
+        }
+        if let Some(asset_tag) = &self.asset_tag {
+            writer.write_fmt(format_args!("\tAsset Tag: {}\n", asset_tag))?;
+        }
+        if let Some(feature_flags) = self.feature_flags {
+            self.dump_feature_flag(writer, feature_flags)?;
+        }
+        if let Some(location) = &self.location {
+            writer.write_fmt(format_args!("\tLocation In Chassis: {}\n", location))?;
+        }
+        if let Some(chassis_handle) = &self.chassis_handle {
+            writer.write_fmt(format_args!("\tChassis Handle: 0x{:04X}\n", chassis_handle))?;
+        }
+        if self.board_ty.is_some() {
+            writer.write_fmt(format_args!("\tType: {}\n", self.board_ty_str()))?;
+        }
+
+        Ok(())
+    }
+
+    fn dump_feature_flag(&self, writer: &mut impl Write, value: u8) -> std::io::Result<()> {
+        let feats = vec![
+            "Board is a hosting board",
+            "Board requires at least one daughter board",
+            "Board is removable",
+            "Board is replaceable",
+            "Board is hot swappable",
+            "",
+            "",
+        ];
+
+        writer.write_fmt(format_args!("\tFeatures:\n"))?;
+        for (i, name) in feats.iter().enumerate() {
+            let bit_flag = 1 << i;
+            if (bit_flag & value) != 0 {
+                writer.write_fmt(format_args!("\t\t{}\n", name))?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn board_ty_str(&self) -> &'static str {
+        match self.board_ty.unwrap() {
+            1 => "Unknown",
+            2 => "Other",
+            3 => "Server Blade",
+            4 => "Connectivity Switch",
+            5 => "System Management Module",
+            6 => "Processor Module",
+            7 => "I/O Module",
+            8 => "Memory Module",
+            9 => "Daughter Board",
+            10 => "Motherboard",
+            11 => "Processor+Memory Module",
+            12 => "Processor+I/O Module",
+            13 => "Interconnect Board",
             _ => unreachable!(),
         }
     }
