@@ -22,12 +22,12 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
     - name: Create Artifacts
-      run: cargo build --release --verbose
+      run: cargo build --release --examples --verbose
     - name: Create Archive (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
       run: |
         RUST_TARGET=`rustup show active-toolchain | sed -e 's/[^-]*-\(.*\)\s.*/\1/'`
-        tar -C ./target/release/ -zcf smbios-dump-${RUST_TARGET}.tar.gz smbios-dump
+        tar -C ./target/release/examples/ -zcf smbios-dump-${RUST_TARGET}.tar.gz smbios-dump
         echo "RUST_TARGET=${RUST_TARGET}" >> $GITHUB_ENV
         echo "ARTIFACT_PATH=smbios-dump-${RUST_TARGET}.tar.gz" >> $GITHUB_ENV
     - name: Create Archive (Windows)
@@ -39,7 +39,7 @@ jobs:
         $RUST_OS=$RUST_TOOLCHAIN[3]
         $RUST_ENV=$RUST_TOOLCHAIN[4]
         $RUST_TARGET="${RUST_ARCH}-${RUST_PLAT}-${RUST_OS}-${RUST_ENV}"
-        Compress-Archive -Path 'target\release\smbios-dump.exe' -DestinationPath "smbios-dump-${RUST_TARGET}.zip"
+        Compress-Archive -Path 'target\release\examples\smbios-dump.exe' -DestinationPath "smbios-dump-${RUST_TARGET}.zip"
         Write-Output "RUST_TARGET=$RUST_TARGET" >> $env:GITHUB_ENV
         Write-Output "ARTIFACT_PATH=smbios-dump-${RUST_TARGET}.zip" >> $env:GITHUB_ENV
     - name: Upload Artifact

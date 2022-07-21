@@ -1,0 +1,18 @@
+[package]
+name = "smbios_derive"
+version = "0.1.0"
+authors = ["9506hqwy"]
+edition = "2021"
+rust-version = "1.60"
+repository = "https://github.com/9506hqwy/smbios-dump-rs"
+license = "MIT OR Apache-2.0"
+keywords = ["smbios"]
+categories = ["development-tools"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0.40"
+quote = "1.0.18"
+syn = { version = "1.0.95", features = ["full"] }
