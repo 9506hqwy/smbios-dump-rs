@@ -148,16 +148,7 @@ fn field_ctor(field: &Field, tydef: &TypeDef) -> proc_macro2::TokenStream {
         let method = Ident::new("get_i64_le", proc_macro2::Span::call_site());
         field_ctor_number(field, tydef, &method, 8)
     } else if is_string(&tydef.ident) {
-        let func_name = &field.ident.as_ref().unwrap();
-
-        quote! {
-            let #func_name = if body.remaining() >= 1 {
-                let idx = body.get_u8();
-                raw.get_string_by_index(idx)
-            } else {
-                None
-            };
-        }
+        field_ctor_string(field, tydef)
     } else {
         unimplemented!(
             "Not supported yet. Field `{}`",
@@ -188,7 +179,7 @@ fn field_ctor_number(
             };
         }
     } else if tydef.vector {
-        let length = get_attr_token(field, "length");
+        let length = get_vec_length(field);
         quote! {
             let #func_name = if let Some(len) = #length {
                 let len = len as usize;
@@ -216,48 +207,71 @@ fn field_ctor_number(
     }
 }
 
-fn get_attr_token(field: &Field, name: &str) -> proc_macro2::TokenStream {
+fn field_ctor_string(field: &Field, tydef: &TypeDef) -> proc_macro2::TokenStream {
+    let func_name = &field.ident.as_ref().unwrap();
+
+    if tydef.array() {
+        let length = tydef.array_length as usize;
+        quote! {
+            let #func_name = if body.remaining() >= #length {
+                let mut arr = [0; #length];
+                for idx in 0..#length {
+                    let idx = body.get_u8();
+                    arr[idx] = raw.get_string_by_index(idx)
+                }
+                Some(arr)
+            } else {
+                None
+            };
+        }
+    } else if tydef.vector {
+        let length = get_vec_length(field);
+        quote! {
+            let #func_name = if let Some(len) = #length {
+                let len = len as usize;
+                if body.remaining() >= len  {
+                    let mut v = vec![];
+                    for _ in 0..len {
+                        let idx = body.get_u8();
+                        v.push(raw.get_string_by_index(idx).unwrap());
+                    }
+                    Some(v)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+        }
+    } else {
+        quote! {
+            let #func_name = if body.remaining() >= 1 {
+                let idx = body.get_u8();
+                raw.get_string_by_index(idx)
+            } else {
+                None
+            };
+        }
+    }
+}
+
+fn get_vec_length(field: &Field) -> proc_macro2::TokenStream {
     for attr in field.attrs.iter().filter(|a| a.path.is_ident("smbios")) {
         for token in attr.clone().tokens.into_iter() {
             if let proc_macro2::TokenTree::Group(group) = token {
                 let mut args = group.stream().into_iter();
                 while let Some(arg) = args.next() {
                     if let proc_macro2::TokenTree::Ident(i) = arg {
-                        if i == name {
+                        if i == "length" {
                             if let Some(proc_macro2::TokenTree::Punct(op)) = args.next() {
                                 if op.as_char() == '=' {
-                                    match args.next() {
-                                        Some(proc_macro2::TokenTree::Group(group)) => {
-                                            let mut idents = vec![];
-                                            for arg in group.stream().into_iter() {
-                                                if let proc_macro2::TokenTree::Literal(value) = arg
-                                                {
-                                                    let arg_value =
-                                                        value.to_string().replace('"', "");
-                                                    let arg_ident = Ident::new(
-                                                        &arg_value,
-                                                        proc_macro2::Span::call_site(),
-                                                    );
-                                                    idents.push(arg_ident);
-                                                }
-                                            }
-
-                                            // TODO:
-                                            let i0 = &idents[0];
-                                            let i1 = &idents[1];
-                                            return quote! { #i0.map(|i| #i1.map(|j| i * j)).flatten()  };
-                                        }
-                                        Some(proc_macro2::TokenTree::Literal(value)) => {
-                                            let arg_value = value.to_string().replace('"', "");
-                                            let arg_ident = Ident::new(
-                                                &arg_value,
-                                                proc_macro2::Span::call_site(),
-                                            );
-                                            return quote! { #arg_ident };
-                                        }
-                                        _ => {
-                                            // PASS
-                                        }
+                                    if let Some(proc_macro2::TokenTree::Literal(value)) =
+                                        args.next()
+                                    {
+                                        let expr = &value.to_string().replace('"', "");
+                                        let stream =
+                                            proc_macro2::TokenStream::from_str(expr).unwrap();
+                                        return quote! { #stream };
                                     }
                                 }
                             }
@@ -269,8 +283,7 @@ fn get_attr_token(field: &Field, name: &str) -> proc_macro2::TokenStream {
     }
 
     unimplemented!(
-        "Need Attribute `{}` to Field `{}`",
-        name,
+        "Need Attribute `length` to Field `{}`",
         field.ident.as_ref().unwrap().to_string()
     );
 }
