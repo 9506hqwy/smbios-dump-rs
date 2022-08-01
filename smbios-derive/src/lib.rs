@@ -6,7 +6,7 @@ use syn::{
 };
 
 #[proc_macro_derive(SMBIOS, attributes(smbios))]
-pub fn xdr_union(input: TokenStream) -> TokenStream {
+pub fn smbios_derive(input: TokenStream) -> TokenStream {
     let ast: ItemStruct = parse(input).unwrap();
 
     let struct_name = ast.ident;
