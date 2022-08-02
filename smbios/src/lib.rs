@@ -119,6 +119,10 @@ pub struct RawSmbiosTable {
 
 impl RawSmbiosTable {
     pub fn get_string_by_index(&self, index: u8) -> Option<String> {
+        if index < 1 {
+            return None;
+        }
+
         let i: usize = (index as usize) - 1;
         self.tailer
             .get(i)

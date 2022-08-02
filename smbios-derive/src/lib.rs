@@ -233,7 +233,9 @@ fn field_ctor_string(field: &Field, tydef: &TypeDef) -> proc_macro2::TokenStream
                     let mut v = vec![];
                     for _ in 0..len {
                         let idx = body.get_u8();
-                        v.push(raw.get_string_by_index(idx).unwrap());
+                        if let Some(value) = raw.get_string_by_index(idx) {
+                            v.push(value);
+                        }
                     }
                     Some(v)
                 } else {
