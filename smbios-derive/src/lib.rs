@@ -11,6 +11,7 @@ pub fn smbios_derive(input: TokenStream) -> TokenStream {
 
     let struct_name = ast.ident;
 
+    let mut field_mandatories = vec![];
     let mut field_getters = vec![];
     let mut field_names = vec![];
     let mut field_ctors = vec![];
@@ -30,6 +31,9 @@ pub fn smbios_derive(input: TokenStream) -> TokenStream {
             });
 
             if !tydef.optional {
+                field_mandatories.push(quote! {
+                    let #func_name = raw.#func_name;
+                });
                 continue;
             }
 
@@ -38,14 +42,10 @@ pub fn smbios_derive(input: TokenStream) -> TokenStream {
         }
     }
 
-    let struct_impl = quote! {
-        impl #struct_name {
-            #(#field_getters)*
-
+    let from_table_func = if !field_mandatories.is_empty() {
+        quote! {
             pub fn from_raw_table(raw: &RawSmbiosTable) -> Self {
-                let table_ty = raw.table_ty;
-                let length = raw.length;
-                let handle = raw.handle;
+                #(#field_mandatories)*
 
                 let mut body = raw.body.clone();
 
@@ -55,6 +55,24 @@ pub fn smbios_derive(input: TokenStream) -> TokenStream {
                     #(#field_names),*
                 }
             }
+        }
+    } else {
+        quote! {
+            pub fn from_raw(body: &mut Bytes, raw: &RawSmbiosTable) -> Self {
+                #(#field_ctors)*
+
+                #struct_name {
+                    #(#field_names),*
+                }
+            }
+        }
+    };
+
+    let struct_impl = quote! {
+        impl #struct_name {
+            #(#field_getters)*
+
+            #from_table_func
         }
     };
 
@@ -150,10 +168,7 @@ fn field_ctor(field: &Field, tydef: &TypeDef) -> proc_macro2::TokenStream {
     } else if is_string(&tydef.ident) {
         field_ctor_string(field, tydef)
     } else {
-        unimplemented!(
-            "Not supported yet. Field `{}`",
-            field.ident.as_ref().unwrap().to_string()
-        );
+        field_ctor_struct(field, tydef)
     }
 }
 
@@ -250,6 +265,40 @@ fn field_ctor_string(field: &Field, tydef: &TypeDef) -> proc_macro2::TokenStream
             let #func_name = if body.remaining() >= 1 {
                 let idx = body.get_u8();
                 raw.get_string_by_index(idx)
+            } else {
+                None
+            };
+        }
+    }
+}
+
+fn field_ctor_struct(field: &Field, tydef: &TypeDef) -> proc_macro2::TokenStream {
+    let func_name = &field.ident.as_ref().unwrap();
+    let struct_name = &tydef.ident;
+
+    if tydef.vector {
+        let length = get_vec_length(field);
+        quote! {
+            let #func_name = if let Some(len) = #length {
+                let len = len as usize;
+                if body.remaining() >= len  {
+                    let mut v = vec![];
+                    for _ in 0..len {
+                        let value = #struct_name::from_raw(&mut body, raw);
+                        v.push(value);
+                    }
+                    Some(v)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+        }
+    } else {
+        quote! {
+            let #func_name = if body.remaining() >= 1 {
+                Some(#struct_name::from_raw(&mut body, raw))
             } else {
                 None
             };

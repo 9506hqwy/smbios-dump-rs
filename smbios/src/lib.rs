@@ -1294,28 +1294,32 @@ pub struct SystemSlots {
 }
 
 #[derive(SMBIOS)]
+pub struct OnBoardDevicesDevice {
+    device_ty: Option<u8>,
+    description_string: Option<String>,
+}
+
+#[derive(SMBIOS)]
 pub struct OnBoardDevices {
     table_ty: u8,
     length: u8,
     handle: u16,
     #[smbios(length = "Some((length - 4) / 2)")]
-    device_ty: Option<Vec<u8>>,
-    #[smbios(length = "Some((length - 4) / 2)")]
-    description_string: Option<Vec<String>>,
+    devices: Option<Vec<OnBoardDevicesDevice>>,
 }
 
 impl OnBoardDevices {
     pub fn get_device(&self) -> Option<Vec<(bool, &'static str, &str)>> {
-        self.device_ty().and_then(|ty| {
-            self.description_string().map(|desc| {
-                let mut devs = vec![];
-                for (t, d) in std::iter::zip(ty, desc) {
-                    let enabled = 0x80 & t == 0x80;
-                    let dev = self.get_device_ty_str(0x7F & t);
-                    devs.push((enabled, dev, d.as_str()));
+        self.devices().map(|devices| {
+            let mut devs = vec![];
+            for device in devices {
+                if let (Some(ty), Some(desc)) = (device.device_ty(), device.description_string()) {
+                    let enabled = 0x80 & ty == 0x80;
+                    let dev = self.get_device_ty_str(0x7F & ty);
+                    devs.push((enabled, dev, desc));
                 }
-                devs
-            })
+            }
+            devs
         })
     }
 
