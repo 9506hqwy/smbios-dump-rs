@@ -591,7 +591,32 @@ fn dump_type6(table: &MemoryModule, writer: &mut impl Write) -> std::io::Result<
 fn dump_type7(table: &Cache, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(7).unwrap());
-    // TODO:
+    write_kv!(writer, "Socket Designation", table.socket_designation());
+    write_kv!(writer, "Configuration", table.enabled());
+    write_kv!(writer, "Configuration", table.cache_socketed());
+    write_kv!(writer, "Configuration", table.cache_level());
+    write_kv!(writer, "Operational Mode", table.operational_mode());
+    write_kv!(writer, "Location", table.location());
+    if table.installed_cache_size2().is_some() {
+        write_kv!(writer, "Installed Size", table.installed_cache_size2());
+    } else {
+        write_kv!(writer, "Installed Size", table.installed_size());
+    }
+    if table.maximum_cache_size2().is_some() {
+        write_kv!(writer, "Maximum Size", table.maximum_cache_size2());
+    } else {
+        write_kv!(writer, "Maximum Size", table.maximum_cache_size());
+    }
+    write_iter!(writer, "Supprted SRAM Types", table.supported_sram_ty_str());
+    write_iter!(writer, "Installed SRAM Type", table.current_sram_ty_str());
+    write_kv!(writer, "Speed", table.cache_speed(), " ns");
+    write_kv!(
+        writer,
+        "Error Correction Type",
+        table.error_correction_ty_str()
+    );
+    write_kv!(writer, "System Type", table.system_cache_ty_str());
+    write_kv!(writer, "Associativity", table.associativity_str());
     Ok(())
 }
 
@@ -730,14 +755,118 @@ fn dump_type15(table: &SystemEventLog, writer: &mut impl Write) -> std::io::Resu
 fn dump_type16(table: &PhysicalMemoryArray, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(16).unwrap());
-    // TODO:
+    write_kv!(writer, "Location", table.location_str());
+    write_kv!(writer, "Use", table.array_use_str());
+    write_kv!(
+        writer,
+        "Error Correction Type",
+        table.memory_error_correction_str()
+    );
+    if table
+        .maximum_capacity()
+        .map(|c| c == 0x8000_0000)
+        .unwrap_or_default()
+    {
+        write_kv!(writer, "Maxumum Capacity", table.ex_maximum_capacity());
+    } else {
+        write_kv!(writer, "Maximum Capacity", table.maximum_capacity());
+    }
+    write_format_kv!(
+        writer,
+        "Error Information Handle",
+        "0x{:04X}",
+        table.memory_error_information_handle()
+    );
+    write_kv!(writer, "Number Of Devices", table.num_memory_devices());
     Ok(())
 }
 
 fn dump_type17(table: &MemoryDevice, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(17).unwrap());
+    write_format_kv!(
+        writer,
+        "Array Handle",
+        "0x{:04X}",
+        table.physical_memory_array_handle()
+    );
+    write_format_kv!(
+        writer,
+        "Error Information Handle",
+        "0x{:04X}",
+        table.memory_error_information_handle()
+    );
+    write_kv!(writer, "Total Width", table.total_width(), " bits");
+    write_kv!(writer, "Data Width", table.data_width(), " bits");
+    if table.extended_size().is_some() && table.size().map(|s| s == 0x7FFF).unwrap_or_default() {
+        write_kv!(writer, "Size", table.extended_size());
+    } else {
+        write_kv!(writer, "Size", table.size());
+    }
+    write_kv!(writer, "Form Factor", table.form_factor_str());
+    write_kv!(writer, "Set", table.device_set());
+    write_kv!(writer, "Locator", table.device_locator());
+    write_kv!(writer, "Bank Locator", table.bank_locator());
+    write_kv!(writer, "Type", table.memory_ty_str());
+    write_iter!(writer, "Type Detail", table.ty_detail_str());
+    if table.extended_speed().is_some() {
+        write_kv!(writer, "Speed", table.extended_speed(), " MT/s");
+    } else {
+        write_kv!(writer, "Speed", table.speed(), " MT/s");
+    }
+    write_kv!(writer, "Manufacturer", table.manufacturer());
+    write_kv!(writer, "Serial Number", table.serial_number());
+    write_kv!(writer, "Asset Tag", table.asset_tag());
+    write_kv!(writer, "Part Number", table.part_number());
+    write_kv!(writer, "Rank", table.attributes().map(|a| a & 0x0F));
+    if table.extended_configured_memory_speed().is_some() {
+        write_kv!(
+            writer,
+            "Configured Memory Speed",
+            table.extended_configured_memory_speed(),
+            " MT/s"
+        );
+    } else {
+        write_kv!(
+            writer,
+            "Configured Memory Speed",
+            table.configured_memory_speed(),
+            " MT/s"
+        );
+    }
+    write_kv!(writer, "Minimum Voltage", table.minimum_voltage(), " V");
+    write_kv!(writer, "Maximum Voltage", table.maximum_voltage(), " V");
+    write_kv!(
+        writer,
+        "Configured Voltage",
+        table.configured_voltage(),
+        " V"
+    );
+    write_kv!(writer, "Memory Technology", table.memory_technology_str());
+    write_iter!(
+        writer,
+        "Memory Operating Mode Capability",
+        table.memory_operating_mode_capability_str()
+    );
+    write_kv!(writer, "Firmware Version", table.firmware_version());
     // TODO:
+    write_format_kv!(
+        writer,
+        "Module Product ID",
+        "0x{:04X}",
+        table.module_product_id()
+    );
+    // TODO:
+    write_format_kv!(
+        writer,
+        "Module Subsustem Controller Product ID",
+        "0x{:04X}",
+        table.memory_subsystem_ctrl_product_id()
+    );
+    write_kv!(writer, "Non-Volatile Size", table.volatile_size());
+    write_kv!(writer, "Volatile Size", table.volatile_size());
+    write_kv!(writer, "Cache Size", table.cache_size());
+    write_kv!(writer, "Logical Size", table.logical_size());
     Ok(())
 }
 
@@ -772,14 +901,84 @@ fn dump_type18(table: &B32MemoryError, writer: &mut impl Write) -> std::io::Resu
 fn dump_type19(table: &MemoryArrayMappedAddress, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(19).unwrap());
-    // TODO:
+    if table.ex_starting_address().is_some()
+        && table
+            .starting_address()
+            .map(|s| s == 0xFFFF_FFFF)
+            .unwrap_or_default()
+    {
+        write_format_kv!(
+            writer,
+            "Starting Address",
+            "0x{:016X}",
+            table.ex_starting_address()
+        );
+        write_format_kv!(
+            writer,
+            "Ending Address",
+            "0x{:016X}",
+            table.ex_ending_address()
+        );
+    } else {
+        // TODO:
+    }
+    write_format_kv!(
+        writer,
+        "Physical Array Handle",
+        "0x{:04X}",
+        table.memory_array_handle()
+    );
+    write_kv!(writer, "Partition Width", table.partition_width());
     Ok(())
 }
 
 fn dump_type20(table: &MemoryDeviceMappedAddress, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(20).unwrap());
-    // TODO:
+    if table.ex_starting_address().is_some()
+        && table
+            .starting_address()
+            .map(|s| s == 0xFFFF_FFFF)
+            .unwrap_or_default()
+    {
+        write_format_kv!(
+            writer,
+            "Starting Address",
+            "0x{:016X}",
+            table.ex_starting_address()
+        );
+        write_format_kv!(
+            writer,
+            "Ending Address",
+            "0x{:016X}",
+            table.ex_ending_address()
+        );
+    } else {
+        // TODO:
+    }
+    write_format_kv!(
+        writer,
+        "Physical Device Handle",
+        "0x{:04X}",
+        table.memory_device_handle()
+    );
+    write_format_kv!(
+        writer,
+        "Memory Array Mapped Address Handle",
+        "0x{:04X}",
+        table.memory_array_mapped_address_handle()
+    );
+    write_kv!(
+        writer,
+        "Partition Row Position",
+        table.partition_row_position()
+    );
+    write_kv!(writer, "Interleave Position", table.interleave_position());
+    write_kv!(
+        writer,
+        "Interleaved Data Depth",
+        table.interleaved_data_depth()
+    );
     Ok(())
 }
 

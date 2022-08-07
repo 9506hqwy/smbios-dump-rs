@@ -1150,6 +1150,113 @@ pub struct Cache {
     installed_cache_size2: Option<u32>,
 }
 
+impl Cache {
+    pub fn operational_mode(&self) -> Option<&'static str> {
+        self.cache_configuration().map(|c| match (c & 0x0300) >> 8 {
+            0b00 => "Write Through",
+            0b01 => "Write Back",
+            0b10 => "Varies with Memory Address",
+            0b11 => "Unknown",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn enabled(&self) -> Option<&'static str> {
+        self.cache_configuration().map(|c| match (c & 0x0080) >> 7 {
+            0b0 => "Disabled",
+            0b1 => "Enabled",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn location(&self) -> Option<&'static str> {
+        self.cache_configuration().map(|c| match (c & 0x0060) >> 5 {
+            0b00 => "Internal",
+            0b01 => "External",
+            0b10 => "Reserved",
+            0b11 => "Unknown",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn cache_socketed(&self) -> Option<&'static str> {
+        self.cache_configuration().map(|c| match (c & 0x0008) >> 3 {
+            0b0 => "Not Socketed",
+            0b1 => "Socketed",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn cache_level(&self) -> Option<u8> {
+        self.cache_configuration().map(|c| ((c & 0x0007) as u8) + 1)
+    }
+
+    pub fn supported_sram_ty_str(&self) -> Option<Vec<String>> {
+        self.supported_sram_ty().map(|v| self.get_sram_ty(v))
+    }
+
+    pub fn current_sram_ty_str(&self) -> Option<Vec<String>> {
+        self.current_sram_ty().map(|v| self.get_sram_ty(v))
+    }
+
+    pub fn error_correction_ty_str(&self) -> Option<&'static str> {
+        self.error_correction_ty().map(|t| match t {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "None",
+            0x04 => "Parity",
+            0x05 => "Single-bit ECC",
+            0x06 => "Multi-bit ECC",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn system_cache_ty_str(&self) -> Option<&'static str> {
+        self.system_cache_ty().map(|t| match t {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "Instruction",
+            0x04 => "Data",
+            0x05 => "Unified",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn associativity_str(&self) -> Option<&'static str> {
+        self.associativity().map(|a| match a {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "Direct Mapped",
+            0x04 => "2-way Set-Associative",
+            0x05 => "4-way Set-Associative",
+            0x06 => "Fully Associative",
+            0x07 => "8-way Set-Associative",
+            0x08 => "16-way Set-Associative",
+            0x09 => "12-way Set-Associative",
+            0x0A => "24-way Set-Associative",
+            0x0B => "32-way Set-Associative",
+            0x0C => "48-way Set-Associative",
+            0x0D => "64-way Set-Associative",
+            0x0E => "20-way Set-Associative",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn get_sram_ty(&self, value: u16) -> Vec<String> {
+        let types = [
+            "Other",
+            "Unknown",
+            "Non-Burst",
+            "Burst",
+            "Pipeline Burst",
+            "Synchronous",
+            "Asynchronous",
+        ];
+
+        get_flag_strings(value as u64, &types)
+    }
+}
+
 #[derive(SMBIOS)]
 pub struct PortConnector {
     table_ty: u8,
@@ -1416,12 +1523,61 @@ pub struct PhysicalMemoryArray {
     length: u8,
     handle: u16,
     location: Option<u8>,
-    r#use: Option<u8>,
+    array_use: Option<u8>,
     memory_error_correction: Option<u8>,
     maximum_capacity: Option<u32>,
     memory_error_information_handle: Option<u16>,
     num_memory_devices: Option<u16>,
-    ex_maximum_memory_devices: Option<u64>,
+    ex_maximum_capacity: Option<u64>,
+}
+
+impl PhysicalMemoryArray {
+    pub fn location_str(&self) -> Option<&'static str> {
+        self.location.map(|l| match l {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "System board or motherboard",
+            0x04 => "ISA add-on card",
+            0x05 => "EISA add-on card",
+            0x06 => "PCI add-on card",
+            0x07 => "MCA add-on card",
+            0x08 => "PCMCIA add-on card",
+            0x09 => "Proprietary add-on card",
+            0x0A => "NuBus",
+            0xA0 => "PC-98/C20 add-on card",
+            0xA1 => "PC-98/C24 add-on card",
+            0xA2 => "PC-98/E add-on card",
+            0xA3 => "PC-98/Local bus add-on card",
+            0xA4 => "CXL add-on card",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn array_use_str(&self) -> Option<&'static str> {
+        self.array_use().map(|u| match u {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "System memory",
+            0x04 => "Video memory",
+            0x05 => "Flash memory",
+            0x06 => "Non-volatile RAM",
+            0x07 => "Cache memory",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn memory_error_correction_str(&self) -> Option<&'static str> {
+        self.memory_error_correction().map(|e| match e {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "None",
+            0x04 => "Parity",
+            0x05 => "Single-bit ECC",
+            0x06 => "Multi-bit ECC",
+            0x07 => "CRC",
+            _ => unreachable!(),
+        })
+    }
 }
 
 #[derive(SMBIOS)]
@@ -1430,7 +1586,7 @@ pub struct MemoryDevice {
     length: u8,
     handle: u16,
     physical_memory_array_handle: Option<u16>,
-    memory_error_informatin_handle: Option<u16>,
+    memory_error_information_handle: Option<u16>,
     total_width: Option<u16>,
     data_width: Option<u16>,
     size: Option<u16>,
@@ -1450,7 +1606,7 @@ pub struct MemoryDevice {
     configured_memory_speed: Option<u16>,
     minimum_voltage: Option<u16>,
     maximum_voltage: Option<u16>,
-    configured_voltaga: Option<u16>,
+    configured_voltage: Option<u16>,
     memory_technology: Option<u8>,
     memory_operating_mode_capability: Option<u16>,
     firmware_version: Option<String>,
@@ -1463,7 +1619,120 @@ pub struct MemoryDevice {
     cache_size: Option<u64>,
     logical_size: Option<u64>,
     extended_speed: Option<u32>,
-    extened_configured_memory_speed: Option<u32>,
+    extended_configured_memory_speed: Option<u32>,
+}
+
+impl MemoryDevice {
+    pub fn form_factor_str(&self) -> Option<&'static str> {
+        self.form_factor().map(|f| match f {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "SIMM",
+            0x04 => "SIP",
+            0x05 => "Chip",
+            0x06 => "DIP",
+            0x07 => "ZIP",
+            0x08 => "Proprietary Card",
+            0x09 => "DIMM",
+            0x0A => "TSOP",
+            0x0B => "Row of chips",
+            0x0C => "RIMM",
+            0x0D => "SODIMM",
+            0x0E => "SRIMM",
+            0x0F => "FB-DIMM",
+            0x10 => "Die",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn memory_ty_str(&self) -> Option<&'static str> {
+        self.memory_ty().map(|t| match t {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "DRAM",
+            0x04 => "EDRAM",
+            0x05 => "VRAM",
+            0x06 => "SRAM",
+            0x07 => "RAM",
+            0x08 => "ROM",
+            0x09 => "FLASH",
+            0x0A => "EEPROM",
+            0x0B => "FEPROM",
+            0x0C => "EPROM",
+            0x0D => "CDRAM",
+            0x0E => "3DRAM",
+            0x0F => "SDRAM",
+            0x10 => "SGRAM",
+            0x11 => "RDRAM",
+            0x12 => "DDR",
+            0x13 => "DDR2",
+            0x14 => "DDR2 FB-DIMM",
+            0x18 => "DDR3",
+            0x19 => "FBD2",
+            0x1A => "DDR4",
+            0x1B => "LPDDR",
+            0x1C => "LPDDR2",
+            0x1D => "LPDDR3",
+            0x1E => "LPDDR4",
+            0x1F => "Logical non-volatile device",
+            0x20 => "HBM",
+            0x21 => "HBM2",
+            0x22 => "DDR5",
+            0x23 => "LPDDR5",
+            0x24 => "HBM3",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn ty_detail_str(&self) -> Option<Vec<String>> {
+        let details = vec![
+            "Reserved",
+            "Other",
+            "Unknown",
+            "Fast-paged",
+            "Static column",
+            "Pseudo-static",
+            "RAMBUS",
+            "Synchronous",
+            "CMOS",
+            "EDO",
+            "Window DRAM",
+            "Cache DRAM",
+            "Non-volatile",
+            "Registered",
+            "Unbuffered",
+            "LRDIMM",
+        ];
+
+        self.ty_detail()
+            .map(|v| get_flag_strings(v as u64, &details))
+    }
+
+    pub fn memory_technology_str(&self) -> Option<&'static str> {
+        self.memory_technology().map(|t| match t {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "DRAM",
+            0x04 => "NVDIMM-N",
+            0x05 => "NVDIMM-F",
+            0x06 => "NVDIMM-P",
+            0x07 => "Intel Optane",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn memory_operating_mode_capability_str(&self) -> Option<Vec<String>> {
+        let caps = vec![
+            "Reserved",
+            "Other",
+            "Unknown",
+            "Volatile memory",
+            "Byte-accessible persistent memory",
+            "Block-accessible persistent memory",
+        ];
+
+        self.ty_detail().map(|v| get_flag_strings(v as u64, &caps))
+    }
 }
 
 #[derive(SMBIOS)]
