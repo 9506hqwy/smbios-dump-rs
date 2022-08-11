@@ -1382,6 +1382,16 @@ pub struct SystemSlotsPeerDevice {
     data_bus_width: Option<u8>,
 }
 
+impl SystemSlotsPeerDevice {
+    pub fn device_number(&self) -> Option<u8> {
+        self.device_function_number().map(|n| n >> 3)
+    }
+
+    pub fn function_number(&self) -> Option<u8> {
+        self.device_function_number().map(|n| n & 0x07)
+    }
+}
+
 #[derive(SMBIOS)]
 pub struct SystemSlots {
     table_ty: u8,
@@ -1389,7 +1399,7 @@ pub struct SystemSlots {
     handle: u16,
     slot_designation: Option<String>,
     slot_ty: Option<u8>,
-    slot_data_bus_sidth: Option<u8>,
+    slot_data_bus_width: Option<u8>,
     current_usage: Option<u8>,
     slot_length: Option<u8>,
     slot_id: Option<u16>,
@@ -1405,7 +1415,199 @@ pub struct SystemSlots {
     slot_information: Option<u8>,
     slot_physical_width: Option<u8>,
     slot_pitch: Option<u8>,
-    slot_heigth: Option<u8>,
+    slot_height: Option<u8>,
+}
+
+impl SystemSlots {
+    pub fn slot_ty_str(&self) -> Option<&'static str> {
+        self.slot_ty().map(|t| match t {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "ISA",
+            0x04 => "MCA",
+            0x05 => "EISA",
+            0x06 => "PCI",
+            0x07 => "PCMCIA",
+            0x08 => "VL-VESA",
+            0x09 => "Proprietary",
+            0x0A => "Processor Card Slot",
+            0x0B => "Proprietary Memory Card Slot",
+            0x0C => "I/O Riser Card Slot",
+            0x0D => "NuBus",
+            0x0E => "PCI - 66MHz Capable",
+            0x0F => "AGP",
+            0x10 => "AGP 2X",
+            0x11 => "AGP 4X",
+            0x12 => "PCI-X",
+            0x13 => "AGP 8X",
+            0x14 => "M.2 Socket 1-DP",
+            0x15 => "M.2 Socket 1-SD",
+            0x16 => "M.2 Socket 2",
+            0x17 => "M.2 Socket 3",
+            0x18 => "MXM Type I",
+            0x19 => "MXM Type II",
+            0x1A => "MXM Type III (standard connector)",
+            0x1B => "MXM Type III (HE connector)",
+            0x1C => "MXM Type IV",
+            0x1D => "MXM 3.0 Type A",
+            0x1E => "MXM 3.0 Type B",
+            0x1F => "PCI Express Gen 2 SFF-8639",
+            0x20 => "PCI Express Gen 3 SFF-8639",
+            0x21 => "PCI Express Mini 52-pin with bottom-side keep-outs",
+            0x22 => "PCI Express Mini 52-pin without bottom-side keep-outs",
+            0x23 => "PCI Express Mini 76-pin",
+            0x24 => "PCI Express Gen 4 SFF-8639",
+            0x25 => "PCI Express Gen 5 SFF-8639",
+            0x26 => "OCP NIC 3.0 Small Form Factor",
+            0x27 => "OCP NIC 3.0 Large Form Factor",
+            0x28 => "OCP NIC Prior to 3.0",
+            0x30 => "CXL Flexbus 1.0",
+            0xA0 => "PC-98/C20",
+            0xA1 => "PC-98/C24",
+            0xA2 => "PC-98/E",
+            0xA3 => "PC-98/Local Bus",
+            0xA4 => "PC-98/Card",
+            0xA5 => "PCI Express",
+            0xA6 => "PCI Express x1",
+            0xA7 => "PCI Express x2",
+            0xA8 => "PCI Express x4",
+            0xA9 => "PCI Express x8",
+            0xAA => "PCI Express x16",
+            0xAB => "PCI Express Gen 2",
+            0xAC => "PCI Express Gen 2 x1",
+            0xAD => "PCI Express Gen 2 x2",
+            0xAE => "PCI Express Gen 2 x4",
+            0xAF => "PCI Express Gen 2 x8",
+            0xB0 => "PCI Express Gen 2 x16",
+            0xB1 => "PCI Express Gen 3",
+            0xB2 => "PCI Express Gen 3 x1",
+            0xB3 => "PCI Express Gen 3 x2",
+            0xB4 => "PCI Express Gen 3 x4",
+            0xB5 => "PCI Express Gen 3 x8",
+            0xB6 => "PCI Express Gen 3 x16",
+            // 0xB7 => "",
+            0xB8 => "PCI Express Gen 4",
+            0xB9 => "PCI Express Gen 4 x1",
+            0xBA => "PCI Express Gen 4 x2",
+            0xBB => "PCI Express Gen 4 x4",
+            0xBC => "PCI Express Gen 4 x8",
+            0xBD => "PCI Express Gen 4 x16",
+            0xBE => "PCI Express Gen 5",
+            0xBF => "PCI Express Gen 5 x1",
+            0xC0 => "PCI Express Gen 5 x2",
+            0xC1 => "PCI Express Gen 5 x4",
+            0xC2 => "PCI Express Gen 5 x8",
+            0xC3 => "PCI Express Gen 5 x16",
+            0xC4 => "PCI Express Gen 6 and Beyond",
+            0xC5 => "Enterprise and Datacenter 1U E1 Form Factor Slot",
+            0xC6 => "Enterprise and Datacenter 3\" E3 Form Factor Slot",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn slot_data_bus_width_str(&self) -> Option<&'static str> {
+        self.slot_data_bus_width()
+            .map(|t| self.get_data_bus_width_str(t))
+    }
+
+    pub fn current_usage_str(&self) -> Option<&'static str> {
+        self.current_usage().map(|u| match u {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "Available",
+            0x04 => "In use",
+            0x05 => "Unavailable",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn slot_length_str(&self) -> Option<&'static str> {
+        self.slot_length().map(|l| match l {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "Short Length",
+            0x04 => "Long Length",
+            0x05 => "2.5\" drive form factor",
+            0x06 => "2.5\" drive form factor",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn slot_characteristics1_str(&self) -> Option<Vec<String>> {
+        let chars = vec![
+            "Characteristics unknown",
+            "Provides 5.0 volts",
+            "Provides 3.3 volts",
+            "Slot’s opening is shared with another slot",
+            "PC Card slot supports PC Card-16",
+            "PC Card slot supports CardBus",
+            "PC Card slot supports Zoom Video",
+            "PC Card slot supports Modem Ring Resume",
+        ];
+
+        self.slot_characteristics1()
+            .map(|v| get_flag_strings(v as u64, &chars))
+    }
+
+    pub fn slot_characteristics2_str(&self) -> Option<Vec<String>> {
+        let chars = vec![
+            "PCI slot supports Power Management Event signal",
+            "Slot supports hot-plug devices",
+            "PCI slot supports SMBus signal",
+            "PCIe slot supports bifurcation",
+            "Slot supports async/surprise removal",
+            "Flexbus slot, CXL 1.0 capable",
+            "Flexbus slot, CXL 2.0 capable",
+            "Reserved",
+        ];
+
+        self.slot_characteristics2()
+            .map(|v| get_flag_strings(v as u64, &chars))
+    }
+
+    pub fn device_number(&self) -> Option<u8> {
+        self.device_function_number().map(|n| n >> 3)
+    }
+
+    pub fn function_number(&self) -> Option<u8> {
+        self.device_function_number().map(|n| n & 0x07)
+    }
+
+    pub fn slot_physical_width_str(&self) -> Option<&'static str> {
+        self.slot_physical_width()
+            .map(|p| self.get_data_bus_width_str(p))
+    }
+
+    pub fn slot_height_str(&self) -> Option<&'static str> {
+        self.slot_height().map(|h| match h {
+            0x00 => "Not applicable",
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "Full height",
+            0x04 => "Low-profile",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn get_data_bus_width_str(&self, value: u8) -> &'static str {
+        match value {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "8 bit",
+            0x04 => "16 bit",
+            0x05 => "32 bit",
+            0x06 => "64 bit",
+            0x07 => "128 bit",
+            0x08 => "1x or x1",
+            0x09 => "2x or x2",
+            0x0A => "4x or x4",
+            0x0B => "8x or x8",
+            0x0C => "12x or x12",
+            0x0D => "16x or x16",
+            0x0E => "32x or x32",
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[derive(SMBIOS)]
@@ -2137,10 +2339,46 @@ pub struct OnboardDevicesExtended {
     handle: u16,
     reference_designation: Option<String>,
     device_ty: Option<u8>,
-    device_ty_interface: Option<u8>,
+    device_ty_instance: Option<u8>,
     segment_group_number: Option<u16>,
     bus_number: Option<u8>,
     device_function_number: Option<u8>,
+}
+
+impl OnboardDevicesExtended {
+    pub fn device_status(&self) -> Option<bool> {
+        self.device_ty().map(|t| (t & 0x80) == 0x80)
+    }
+
+    pub fn device_ty_str(&self) -> Option<&'static str> {
+        self.device_ty().map(|t| match t & 0x3F {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "Video",
+            0x04 => "SCSI Controller",
+            0x05 => "Ethernet",
+            0x06 => "Token Ring",
+            0x07 => "Sound",
+            0x08 => "PATA Controller",
+            0x09 => "SATA Controller",
+            0x0A => "SAS Controller",
+            0x0B => "Wireless LAN",
+            0x0C => "Bluetooth",
+            0x0D => "WWAN",
+            0x0E => "eMMC",
+            0x0F => "NVMe Controller",
+            0x10 => "UFS Controller",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn device_number(&self) -> Option<u8> {
+        self.device_function_number().map(|n| n >> 3)
+    }
+
+    pub fn function_number(&self) -> Option<u8> {
+        self.device_function_number().map(|n| n & 0x07)
+    }
 }
 
 #[derive(SMBIOS)]

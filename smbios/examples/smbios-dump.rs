@@ -650,7 +650,57 @@ fn dump_type8(table: &PortConnector, writer: &mut impl Write) -> std::io::Result
 fn dump_type9(table: &SystemSlots, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(9).unwrap());
-    // TODO:
+    write_kv!(writer, "Designation", table.slot_designation());
+    if let (Some(_), Some(_)) = (table.slot_ty(), table.slot_data_bus_width()) {
+        let t = format!(
+            "{} {}",
+            table.slot_ty_str().unwrap(),
+            table.slot_data_bus_width_str().unwrap()
+        );
+        write_kv!(writer, "Type", Some(t));
+    } else if let Some(_) = table.slot_ty() {
+        write_kv!(writer, "Type", table.slot_ty_str());
+    }
+    write_kv!(writer, "Current Usage", table.current_usage_str());
+    write_kv!(writer, "Length", table.slot_length_str());
+    write_kv!(writer, "ID", table.slot_id());
+    write_iter!(writer, "Characteristics", table.slot_characteristics1_str());
+    write_iter!(writer, "", table.slot_characteristics2_str());
+    write_bus_address(
+        writer,
+        "Bus Address",
+        table.segment_group_number(),
+        table.bus_number(),
+        table.device_function_number(),
+    )?;
+    write_kv!(writer, "Data Bus Width", table.data_bus_width());
+    write_kv!(writer, "Peer Devices", table.peer_grouping_count());
+    if let Some(peers) = table.peer_groups() {
+        for (i, peer) in peers.iter().enumerate() {
+            let key = format!("Peer Device {}", i);
+            write_bus_address(
+                writer,
+                &key,
+                (*peer).segment_group_number(),
+                (*peer).bus_number(),
+                (*peer).device_function_number(),
+            )?;
+        }
+    }
+    write_kv!(writer, "PCI Express Generation", table.slot_information());
+    write_kv!(
+        writer,
+        "Slot Physical Width",
+        table.slot_physical_width_str()
+    );
+    write_format_kv!(
+        writer,
+        "Pitch",
+        "{:.2}",
+        table.slot_pitch().map(|p| p / 100),
+        " mm"
+    );
+    write_kv!(writer, "Height", table.slot_height_str());
     Ok(())
 }
 
@@ -1142,7 +1192,27 @@ fn dump_type40(table: &Additional, writer: &mut impl Write) -> std::io::Result<(
 fn dump_type41(table: &OnboardDevicesExtended, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(41).unwrap());
-    // TODO:
+    write_kv!(
+        writer,
+        "Reference Designation",
+        table.reference_designation()
+    );
+    write_kv!(writer, "Type", table.device_ty_str());
+    write_kv!(
+        writer,
+        "Status",
+        table
+            .device_status()
+            .map(|s| if s { "Enabled" } else { "Disabled" })
+    );
+    write_kv!(writer, "Type Instance", table.device_ty_instance());
+    write_bus_address(
+        writer,
+        "Bus Address",
+        table.segment_group_number(),
+        table.bus_number(),
+        table.device_function_number(),
+    )?;
     Ok(())
 }
 
@@ -1213,6 +1283,29 @@ fn memory_module_size(value: Option<u8>) -> Option<String> {
             v => format!("{} MB {}", v, conn),
         }
     })
+}
+
+fn write_bus_address(
+    writer: &mut impl Write,
+    key: &str,
+    seg: Option<u16>,
+    bus: Option<u8>,
+    dev_func: Option<u8>,
+) -> std::io::Result<()> {
+    if let (Some(seg), Some(bus), Some(dev_func)) = (seg, bus, dev_func) {
+        if !(seg == 0xFFFF && bus == 0xFF && dev_func == 0xFF) {
+            let slot = format!(
+                "{:04x}:{:02x}:{:02x}.{}",
+                seg,
+                bus,
+                dev_func >> 3,
+                dev_func & 0x07,
+            );
+            write_kv!(writer, key, Some(slot));
+        }
+    }
+
+    Ok(())
 }
 
 fn write_cache(
