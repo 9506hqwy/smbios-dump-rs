@@ -1375,6 +1375,14 @@ impl PortConnector {
 }
 
 #[derive(SMBIOS)]
+pub struct SystemSlotsPeerDevice {
+    segment_group_number: Option<u16>,
+    bus_number: Option<u8>,
+    device_function_number: Option<u8>,
+    data_bus_width: Option<u8>,
+}
+
+#[derive(SMBIOS)]
 pub struct SystemSlots {
     table_ty: u8,
     length: u8,
@@ -1393,7 +1401,7 @@ pub struct SystemSlots {
     data_bus_width: Option<u8>,
     peer_grouping_count: Option<u8>,
     #[smbios(length = "peer_grouping_count")]
-    peer_groups: Option<Vec<u8>>,
+    peer_groups: Option<Vec<SystemSlotsPeerDevice>>,
     slot_information: Option<u8>,
     slot_physical_width: Option<u8>,
     slot_pitch: Option<u8>,
