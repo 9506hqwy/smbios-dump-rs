@@ -791,7 +791,18 @@ fn dump_type13(
 fn dump_type14(table: &GroupAssociations, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(14).unwrap());
-    // TODO:
+    write_kv!(writer, "Name", table.group_name());
+    write_kv!(writer, "Items", table.items().map(|i| i.len()));
+    if let Some(items) = table.items() {
+        for item in items {
+            let value = format!(
+                "{:04X} ({})",
+                item.item_handle().unwrap(),
+                get_table_name_by_id(item.item_ty().unwrap()).unwrap()
+            );
+            write_item!(writer, value);
+        }
+    }
     Ok(())
 }
 
@@ -1091,28 +1102,176 @@ fn dump_type25(table: &SystemPowerControls, writer: &mut impl Write) -> std::io:
 fn dump_type26(table: &VoltageProbe, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(26).unwrap());
-    // TODO:
+    write_kv!(writer, "Description", table.description());
+    write_kv!(writer, "Location", table.location_str());
+    write_kv!(writer, "Status", table.status_str());
+    write_format_kv!(
+        writer,
+        "Maximum Value",
+        "{:.3} V",
+        table.maximum_value().map(|v| v as f32 / 1000f32)
+    );
+    write_format_kv!(
+        writer,
+        "Minimum Value",
+        "{:.3} V",
+        table.minimum_value().map(|v| v as f32 / 1000f32)
+    );
+    write_format_kv!(
+        writer,
+        "Resolution",
+        "{:.1} mV",
+        table.resolution().map(|v| v as f32 / 10f32)
+    );
+    write_format_kv!(
+        writer,
+        "Torelance",
+        "{:.3} V",
+        table.tolerance().map(|v| v as f32 / 1000f32)
+    );
+    write_format_kv!(
+        writer,
+        "Accuracy",
+        "{:.2}%",
+        table.accuracy().map(|v| v as f32 / 100f32)
+    );
+    write_format_kv!(
+        writer,
+        "OEM-specific Information",
+        "{:08X}",
+        table.oem_defined()
+    );
+    write_format_kv!(
+        writer,
+        "Nominal Value",
+        "{:.3} V",
+        table.nominal_value().map(|v| v as f32 / 1000f32)
+    );
     Ok(())
 }
 
 fn dump_type27(table: &CoolingDevice, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(27).unwrap());
-    // TODO:
+    write_format_kv!(
+        writer,
+        "Temperature Probe Handle",
+        "{:04X}",
+        table.temperature_probe_handle()
+    );
+    write_kv!(writer, "Type", table.device_ty_str());
+    write_kv!(writer, "Status", table.status_str());
+    write_kv!(writer, "Cooling Unit Group", table.cooling_unit_group());
+    write_format_kv!(
+        writer,
+        "OEM-specific Information",
+        "{:08X}",
+        table.oem_defined()
+    );
+    write_kv!(writer, "Nominal Speed", table.nominal_speed(), " rpm");
+    write_kv!(writer, "Description", table.description());
     Ok(())
 }
 
 fn dump_type28(table: &TemperatureProbe, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(28).unwrap());
-    // TODO:
+    write_kv!(writer, "Description", table.description());
+    write_kv!(writer, "Location", table.location_str());
+    write_kv!(writer, "Status", table.status_str());
+    write_format_kv!(
+        writer,
+        "Maximum Value",
+        "{:.1} deg C",
+        table.maximum_value().map(|v| v as f32 / 10f32)
+    );
+    write_format_kv!(
+        writer,
+        "Minimum Value",
+        "{:.1} deg C",
+        table.minimum_value().map(|v| v as f32 / 10f32)
+    );
+    write_format_kv!(
+        writer,
+        "Resolution",
+        "{:.3} deg C",
+        table.resolution().map(|v| v as f32 / 1000f32)
+    );
+    write_format_kv!(
+        writer,
+        "Tolerance",
+        "{:.1} deg C",
+        table.tolerance().map(|v| v as f32 / 10f32)
+    );
+    write_format_kv!(
+        writer,
+        "Accuracy",
+        "{:.2}%",
+        table.accuracy().map(|v| v as f32 / 100f32)
+    );
+    write_format_kv!(
+        writer,
+        "OEM-specific Information",
+        "{:08X}",
+        table.oem_defined()
+    );
+    write_format_kv!(
+        writer,
+        "Nominal Value",
+        "{:.1} deg C",
+        table.nominal_value().map(|v| v as f32 / 10f32)
+    );
     Ok(())
 }
 
 fn dump_type29(table: &ElectricalCurrentProbe, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(29).unwrap());
-    // TODO:
+    write_kv!(writer, "Description", table.description());
+    write_kv!(writer, "Location", table.location_str());
+    write_kv!(writer, "Status", table.status_str());
+    write_format_kv!(
+        writer,
+        "Maximum Value",
+        "{:.3} A",
+        table.maximum_value().map(|v| v as f32 / 1000f32)
+    );
+    write_format_kv!(
+        writer,
+        "Minimum Value",
+        "{:.3} A",
+        table.minimum_value().map(|v| v as f32 / 1000f32)
+    );
+    write_format_kv!(
+        writer,
+        "Resolution",
+        "{:.1} mA",
+        table.resolution().map(|v| v as f32 / 10f32)
+    );
+    write_format_kv!(
+        writer,
+        "Tolerance",
+        "{:.3} A",
+        table.tolerance().map(|v| v as f32 / 1000f32)
+    );
+    write_format_kv!(
+        writer,
+        "Accuracy",
+        "{:.2}%",
+        table.accuracy().map(|v| v as f32 / 100f32)
+    );
+    write_format_kv!(
+        writer,
+        "OEM-specific Information",
+        "{:08X}",
+        table.oem_defined()
+    );
+    write_format_kv!(
+        writer,
+        "Nominal Value",
+        "{:.3} A",
+        table.nominal_value().map(|v| v as f32 / 1000f32)
+    );
     Ok(())
 }
 

@@ -70,7 +70,11 @@ static TABLE_NAMES: Lazy<HashMap<u8, &'static str>> = Lazy::new(|| {
 });
 
 pub fn get_table_name_by_id(id: u8) -> Option<&'static str> {
-    TABLE_NAMES.get(&id).cloned()
+    if id >= 128 {
+        Some("OEM-specific")
+    } else {
+        TABLE_NAMES.get(&id).cloned()
+    }
 }
 
 pub struct RawSmbiosData {
@@ -1697,13 +1701,19 @@ impl BiosLanguage {
 }
 
 #[derive(SMBIOS)]
+pub struct GroupAssociationsItem {
+    item_ty: Option<u8>,
+    item_handle: Option<u16>,
+}
+
+#[derive(SMBIOS)]
 pub struct GroupAssociations {
     table_ty: u8,
     length: u8,
     handle: u16,
     group_name: Option<String>,
-    item_ty: Option<u8>,
-    item_handle: Option<u16>,
+    #[smbios(length = "Some(((length - 5) / 3) as u8)")]
+    items: Option<Vec<GroupAssociationsItem>>,
 }
 
 #[derive(SMBIOS)]
@@ -2140,6 +2150,37 @@ pub struct VoltageProbe {
     nominal_value: Option<u16>,
 }
 
+impl VoltageProbe {
+    pub fn location_str(&self) -> Option<&'static str> {
+        self.location_and_status().map(|l| match l & 0x1F {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "Processor",
+            0x04 => "Disk",
+            0x05 => "Peripheral Bay",
+            0x06 => "System Management Module",
+            0x07 => "Motherboard",
+            0x08 => "Memory Module",
+            0x09 => "Processor Module",
+            0x0A => "Power Unit",
+            0x0B => "Add-in Card",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn status_str(&self) -> Option<&'static str> {
+        self.location_and_status().map(|s| match s >> 5 {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "OK",
+            0x04 => "Non-critical",
+            0x05 => "Critical",
+            0x06 => "Non-recoverable",
+            _ => unreachable!(),
+        })
+    }
+}
+
 #[derive(SMBIOS)]
 pub struct CoolingDevice {
     table_ty: u8,
@@ -2151,6 +2192,37 @@ pub struct CoolingDevice {
     oem_defined: Option<u32>,
     nominal_speed: Option<u16>,
     description: Option<String>,
+}
+
+impl CoolingDevice {
+    pub fn device_ty_str(&self) -> Option<&'static str> {
+        self.device_ty_and_status().map(|t| match t & 0x1F {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "Fan",
+            0x04 => "Centrifugal Blower",
+            0x05 => "Chip Fan",
+            0x06 => "Cabinet Fan",
+            0x07 => "Power Supply Fan",
+            0x08 => "Heat Pipe",
+            0x09 => "Integrated Refrigeration",
+            0x0A => "Active Cooling",
+            0x0B => "Passive Cooling",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn status_str(&self) -> Option<&'static str> {
+        self.device_ty_and_status().map(|s| match s >> 5 {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "OK",
+            0x04 => "Non-critical",
+            0x05 => "Critical",
+            0x06 => "Non-recoverable",
+            _ => unreachable!(),
+        })
+    }
 }
 
 #[derive(SMBIOS)]
@@ -2169,6 +2241,41 @@ pub struct TemperatureProbe {
     nominal_value: Option<u16>,
 }
 
+impl TemperatureProbe {
+    pub fn location_str(&self) -> Option<&'static str> {
+        self.location_and_status().map(|l| match l & 0x1F {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "Processor",
+            0x04 => "Disk",
+            0x05 => "Peripheral Bay",
+            0x06 => "System Management Module",
+            0x07 => "Motherboard",
+            0x08 => "Memory Module",
+            0x09 => "Processor Module",
+            0x0A => "Power Unit",
+            0x0B => "Add-in Card",
+            0x0C => "Front Panel Board",
+            0x0D => "Back Panel Board",
+            0x0E => "Power System Board",
+            0x0F => "Drive Back Plane",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn status_str(&self) -> Option<&'static str> {
+        self.location_and_status().map(|s| match s >> 5 {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "OK",
+            0x04 => "Non-critical",
+            0x05 => "Critical",
+            0x06 => "Non-recoverable",
+            _ => unreachable!(),
+        })
+    }
+}
+
 #[derive(SMBIOS)]
 pub struct ElectricalCurrentProbe {
     table_ty: u8,
@@ -2183,6 +2290,37 @@ pub struct ElectricalCurrentProbe {
     accuracy: Option<u16>,
     oem_defined: Option<u32>,
     nominal_value: Option<u16>,
+}
+
+impl ElectricalCurrentProbe {
+    pub fn location_str(&self) -> Option<&'static str> {
+        self.location_and_status().map(|l| match l & 0x1F {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "Processor",
+            0x04 => "Disk",
+            0x05 => "Peripheral Bay",
+            0x06 => "System Management Module",
+            0x07 => "Motherboard",
+            0x08 => "Memory Module",
+            0x09 => "Processor Module",
+            0x0A => "Power Unit",
+            0x0B => "Add-in Card",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn status_str(&self) -> Option<&'static str> {
+        self.location_and_status().map(|s| match s >> 5 {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "OK",
+            0x04 => "Non-critical",
+            0x05 => "Critical",
+            0x06 => "Non-recoverable",
+            _ => unreachable!(),
+        })
+    }
 }
 
 #[derive(SMBIOS)]
