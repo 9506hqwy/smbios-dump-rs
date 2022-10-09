@@ -2386,6 +2386,38 @@ pub struct ManagementDevice {
     address_ty: Option<u8>,
 }
 
+impl ManagementDevice {
+    pub fn ty_str(&self) -> Option<&'static str> {
+        self.ty().map(|s| match s {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "National Semiconductor LM75",
+            0x04 => "National Semiconductor LM78",
+            0x05 => "National Semiconductor LM79",
+            0x06 => "National Semiconductor LM80",
+            0x07 => "National Semiconductor LM81",
+            0x08 => "Analog Devices ADM9240",
+            0x09 => "Dallas Semiconductor DS1780",
+            0x0A => "Maxim 1617",
+            0x0B => "Genesys GL518SM",
+            0x0C => "Winbond W83781D",
+            0x0D => "Holtek HT82H791",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn address_ty_str(&self) -> Option<&'static str> {
+        self.ty().map(|s| match s {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "I/O Port",
+            0x04 => "Memory",
+            0x05 => "SM Bus",
+            _ => unreachable!(),
+        })
+    }
+}
+
 #[derive(SMBIOS)]
 pub struct ManagementDeviceComponent {
     table_ty: u8,
@@ -2458,6 +2490,72 @@ pub struct SystemPowerSupply {
     input_voltage_probe_handle: Option<u16>,
     cooling_device_handle: Option<u16>,
     input_current_probe_handle: Option<u16>,
+}
+
+impl SystemPowerSupply {
+    pub fn hot_replaceable(&self) -> Option<bool> {
+        self.power_supply_characteristics.map(|c| c & 0x01 != 0x00)
+    }
+
+    pub fn present(&self) -> Option<bool> {
+        self.power_supply_characteristics.map(|c| c & 0x02 != 0x00)
+    }
+
+    pub fn range_switching(&self) -> Option<u8> {
+        self.power_supply_characteristics
+            .map(|c| ((c >> 3) & 0x0F) as u8)
+    }
+
+    pub fn range_switching_str(&self) -> Option<&'static str> {
+        self.status().map(|s| match s {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "Manual",
+            0x04 => "Auto-switch",
+            0x05 => "Wide range",
+            0x06 => "Not applicable",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn status(&self) -> Option<u8> {
+        self.power_supply_characteristics
+            .map(|c| ((c >> 7) & 0x07) as u8)
+    }
+
+    pub fn status_str(&self) -> Option<&'static str> {
+        self.status().map(|s| match s {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "OK",
+            0x04 => "Non-critical",
+            0x05 => "Critical",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn ty(&self) -> Option<u8> {
+        self.power_supply_characteristics
+            .map(|c| ((c >> 10) & 0x0F) as u8)
+    }
+
+    pub fn ty_str(&self) -> Option<&'static str> {
+        self.ty().map(|s| match s {
+            0x01 => "Other",
+            0x02 => "Unknown",
+            0x03 => "Linear",
+            0x04 => "Switching",
+            0x05 => "Battery",
+            0x06 => "UPS",
+            0x07 => "Converter",
+            0x08 => "Regulator",
+            _ => unreachable!(),
+        })
+    }
+
+    pub fn unplugged(&self) -> Option<bool> {
+        self.power_supply_characteristics.map(|c| c & 0x04 != 0x00)
+    }
 }
 
 #[derive(SMBIOS)]
@@ -2546,6 +2644,58 @@ pub struct TpmDevice {
     description: Option<String>,
     characteristics: Option<u64>,
     oem_defined: Option<u32>,
+}
+
+impl TpmDevice {
+    pub fn characteristics_str(&self) -> Option<Vec<String>> {
+        let chars = [
+            "",
+            "",
+            "",
+            "TPM Device Characteristics are not supported",
+            "Family configurable via firmware update",
+            "Family configurable via platform software support",
+            "Family configurable via OEM proprietary mechanism",
+        ];
+
+        self.characteristics().map(|v| get_flag_strings(v, &chars))
+    }
+
+    pub fn firmware_version(&self) -> Option<String> {
+        match self.major_spec_version() {
+            Some(0x01) => {
+                if let Some(v) = self.firmware_version1() {
+                    return Some(format!("{}.{}", (v >> 16) & 0xFF, v >> 24));
+                }
+
+                None
+            }
+            Some(0x02) => {
+                if let Some(v) = self.firmware_version1() {
+                    return Some(format!("{}.{}", v >> 16, v & 0xFFFF));
+                }
+
+                None
+            }
+            _ => None,
+        }
+    }
+
+    pub fn spec_version(&self) -> Option<String> {
+        if let (Some(major), Some(minor)) = (self.major_spec_version(), self.minor_spec_version()) {
+            return Some(format!("{}.{}", major, minor));
+        }
+
+        None
+    }
+
+    pub fn vendor_id_str(&self) -> Option<String> {
+        self.vendor_id.map(|id| {
+            id.map(|c| if c.is_ascii() { c as char } else { '.' })
+                .iter()
+                .collect::<String>()
+        })
+    }
 }
 
 #[derive(SMBIOS)]

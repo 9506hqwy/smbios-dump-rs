@@ -1299,14 +1299,35 @@ fn dump_type33(table: &B64MemoryError, writer: &mut impl Write) -> std::io::Resu
 fn dump_type34(table: &ManagementDevice, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(34).unwrap());
-    // TODO:
+    write_kv!(writer, "Description", table.description());
+    write_kv!(writer, "Type", table.ty_str());
+    write_format_kv!(writer, "Address", "0x{:08X}", table.address());
+    write_kv!(writer, "Address Type", table.address_ty_str());
     Ok(())
 }
 
 fn dump_type35(table: &ManagementDeviceComponent, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(35).unwrap());
-    // TODO:
+    write_kv!(writer, "Description", table.description());
+    write_format_kv!(
+        writer,
+        "Management Device Handle",
+        "0x{:04X}",
+        table.management_device_handle()
+    );
+    write_format_kv!(
+        writer,
+        "Component Handle",
+        "0x{:04X}",
+        table.component_handle()
+    );
+    write_format_kv!(
+        writer,
+        "Threshold Handle",
+        "0x{:04X}",
+        table.threshold_handle()
+    );
     Ok(())
 }
 
@@ -1316,7 +1337,36 @@ fn dump_type36(
 ) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(36).unwrap());
-    // TODO:
+    write_kv!(
+        writer,
+        "Lower Non-critical Threshold",
+        table.lower_threshold_non_critical()
+    );
+    write_kv!(
+        writer,
+        "Upper Non-critical Threshold",
+        table.upper_threshold_non_critical()
+    );
+    write_kv!(
+        writer,
+        "Lower Critical Threshold",
+        table.lower_threshold_critical()
+    );
+    write_kv!(
+        writer,
+        "Upper Critical Threshold",
+        table.upper_threshold_critical()
+    );
+    write_kv!(
+        writer,
+        "Lower Non-recoverable Threshold",
+        table.lower_threshold_non_recoverable()
+    );
+    write_kv!(
+        writer,
+        "Upper Non-recoverable Threshold",
+        table.upper_threshold_non_recoverable()
+    );
     Ok(())
 }
 
@@ -1337,7 +1387,57 @@ fn dump_type38(table: &IpmiDevice, writer: &mut impl Write) -> std::io::Result<(
 fn dump_type39(table: &SystemPowerSupply, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(39).unwrap());
-    // TODO:
+    write_kv!(writer, "Power Unit Group", table.power_unit_group());
+    write_kv!(writer, "Location", table.location());
+    write_kv!(writer, "Name", table.device_name());
+    write_kv!(writer, "Manufacturer", table.manufacturer());
+    write_kv!(writer, "Serial Number", table.serial_number());
+    write_kv!(writer, "Asset Tag", table.asset_tag_number());
+    write_kv!(writer, "Model Part Number", table.model_part_number());
+    write_kv!(writer, "Revision", table.revision_level());
+    write_format_kv!(
+        writer,
+        "Max Power Capacity",
+        "{} W",
+        table.max_power_capacity()
+    );
+    write_kv!(writer, "Status", table.status_str());
+    write_kv!(writer, "Type", table.ty_str());
+    write_kv!(
+        writer,
+        "Input Voltage Range Switching",
+        table.range_switching_str()
+    );
+    write_kv!(
+        writer,
+        "Plugged",
+        table.unplugged().map(|f| if f { "No" } else { "Yes" })
+    );
+    write_kv!(
+        writer,
+        "Hot Replaceable",
+        table
+            .hot_replaceable()
+            .map(|f| if f { "Yes" } else { "No" })
+    );
+    write_format_kv!(
+        writer,
+        "Input Voltage Probe Handle",
+        "0x{:04X}",
+        table.input_voltage_probe_handle()
+    );
+    write_format_kv!(
+        writer,
+        "Cooling Device Handle",
+        "0x{:04X}",
+        table.cooling_device_handle()
+    );
+    write_format_kv!(
+        writer,
+        "Input Current Probe Handle",
+        "0x{:04X}",
+        table.input_current_probe_handle()
+    );
     Ok(())
 }
 
@@ -1388,7 +1488,17 @@ fn dump_type42(
 fn dump_type43(table: &TpmDevice, writer: &mut impl Write) -> std::io::Result<()> {
     write_header!(writer, table);
     write_title!(writer, get_table_name_by_id(43).unwrap());
-    // TODO:
+    write_kv!(writer, "Vendor ID", table.vendor_id_str());
+    write_kv!(writer, "Specification Version", table.spec_version());
+    write_kv!(writer, "Firmware Revision", table.firmware_version());
+    write_kv!(writer, "Description", table.description());
+    write_iter!(writer, "Characteristics", table.characteristics_str());
+    write_format_kv!(
+        writer,
+        "OEM-specific Information",
+        "0x{:08X}",
+        table.oem_defined()
+    );
     Ok(())
 }
 
