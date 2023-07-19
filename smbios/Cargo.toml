@@ -16,9 +16,8 @@ smbios_derive = { path="../smbios-derive" }
 uuid = "1.1.2"
 
 [target.'cfg(windows)'.dependencies.windows]
-version = "0.38.0"
+version = "0.48.0"
 features = [
-    "alloc",
     "Win32_Foundation",
     "Win32_System_SystemInformation",
 ]

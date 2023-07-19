@@ -23,7 +23,7 @@ fn enum_system_firmware_table(signature: u32) -> Result<Vec<u32>, Error> {
 
     let sig = FIRMWARE_TABLE_PROVIDER(signature);
 
-    let size = unsafe { EnumSystemFirmwareTables(sig, std::ptr::null_mut(), 0) };
+    let size = unsafe { EnumSystemFirmwareTables(sig, None, 0) };
     if size == 0 {
         return Err(Error::from_win32());
     }
@@ -32,7 +32,7 @@ fn enum_system_firmware_table(signature: u32) -> Result<Vec<u32>, Error> {
 
     let size = unsafe {
         let buf = buffer.as_mut_ptr() as *mut FIRMWARE_TABLE_ID;
-        EnumSystemFirmwareTables(sig, buf, size)
+        EnumSystemFirmwareTables(sig, Some(buf), size)
     };
     if size == 0 {
         return Err(Error::from_win32());
@@ -47,7 +47,7 @@ fn get_system_firmware_table(signature: u32, table_id: u32) -> Result<Vec<u8>, E
     let sig = FIRMWARE_TABLE_PROVIDER(signature);
     let id = FIRMWARE_TABLE_ID(table_id);
 
-    let size = unsafe { GetSystemFirmwareTable(sig, id, std::ptr::null_mut(), 0) };
+    let size = unsafe { GetSystemFirmwareTable(sig, id, None, 0) };
     if size == 0 {
         return Err(Error::from_win32());
     }
@@ -56,7 +56,7 @@ fn get_system_firmware_table(signature: u32, table_id: u32) -> Result<Vec<u8>, E
 
     let size = unsafe {
         let buf = buffer.as_mut_ptr() as *mut std::ffi::c_void;
-        GetSystemFirmwareTable(sig, id, buf, size)
+        GetSystemFirmwareTable(sig, id, Some(buf), size)
     };
     if size == 0 {
         return Err(Error::from_win32());
