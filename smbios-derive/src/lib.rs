@@ -307,23 +307,18 @@ fn field_ctor_struct(field: &Field, tydef: &TypeDef) -> proc_macro2::TokenStream
 }
 
 fn get_vec_length(field: &Field) -> proc_macro2::TokenStream {
-    for attr in field.attrs.iter().filter(|a| a.path.is_ident("smbios")) {
-        for token in attr.clone().tokens.into_iter() {
-            if let proc_macro2::TokenTree::Group(group) = token {
-                let mut args = group.stream().into_iter();
-                while let Some(arg) = args.next() {
-                    if let proc_macro2::TokenTree::Ident(i) = arg {
-                        if i == "length" {
-                            if let Some(proc_macro2::TokenTree::Punct(op)) = args.next() {
-                                if op.as_char() == '=' {
-                                    if let Some(proc_macro2::TokenTree::Literal(value)) =
-                                        args.next()
-                                    {
-                                        let expr = &value.to_string().replace('"', "");
-                                        let stream =
-                                            proc_macro2::TokenStream::from_str(expr).unwrap();
-                                        return quote! { #stream };
-                                    }
+    for attr in field.attrs.iter().filter(|a| a.path().is_ident("smbios")) {
+        if let syn::Meta::List(list) = &attr.meta {
+            let mut args = list.tokens.clone().into_iter();
+            while let Some(arg) = args.next() {
+                if let proc_macro2::TokenTree::Ident(i) = arg {
+                    if i == "length" {
+                        if let Some(proc_macro2::TokenTree::Punct(op)) = args.next() {
+                            if op.as_char() == '=' {
+                                if let Some(proc_macro2::TokenTree::Literal(value)) = args.next() {
+                                    let expr = &value.to_string().replace('"', "");
+                                    let stream = proc_macro2::TokenStream::from_str(expr).unwrap();
+                                    return quote! { #stream };
                                 }
                             }
                         }
