@@ -318,28 +318,28 @@ fn main() -> Result<(), Error> {
 }
 
 fn dump_raw(table: &RawSmbiosTable, writer: &mut impl Write) -> std::io::Result<()> {
-    write!(
+    writeln!(
         writer,
-        "Handle 0x{:04X}, DMI type {}, {} bytes\n",
+        "Handle 0x{:04X}, DMI type {}, {} bytes",
         table.handle, table.table_ty, table.length
     )?;
 
     // Byte Array
-    write!(writer, "\tHeader and Data:\n")?;
+    writeln!(writer, "\tHeader and Data:")?;
     let mut body = vec![table.table_ty, table.length];
     body.extend_from_slice(&table.handle.to_le_bytes());
     body.extend_from_slice(&table.body);
     write_bytearray(writer, &body)?;
 
     if !table.tailer.is_empty() {
-        write!(writer, "\tStrings:\n")?;
+        writeln!(writer, "\tStrings:")?;
         for bytes in &table.tailer {
             // Byte Array
             write_bytearray(writer, bytes)?;
 
             // String
             if let Ok(s) = String::from_utf8(bytes.to_vec()) {
-                write!(writer, "\t\t{}\n", s)?;
+                writeln!(writer, "\t\t{}", s)?;
             }
         }
     }
@@ -658,7 +658,7 @@ fn dump_type9(table: &SystemSlots, writer: &mut impl Write) -> std::io::Result<(
             table.slot_data_bus_width_str().unwrap()
         );
         write_kv!(writer, "Type", Some(t));
-    } else if let Some(_) = table.slot_ty() {
+    } else if table.slot_ty().is_some() {
         write_kv!(writer, "Type", table.slot_ty_str());
     }
     write_kv!(writer, "Current Usage", table.current_usage_str());
@@ -1605,12 +1605,12 @@ fn write_bytearray(writer: &mut impl Write, bytes: &[u8]) -> std::io::Result<()>
 
         let num = i + 1;
         if num != 1 && (num % 16) == 0 && num < bytes.len() {
-            write!(writer, "\n")?;
+            writeln!(writer)?;
             write!(writer, "\t\t")?;
         } else if num != bytes.len() {
             write!(writer, " ")?;
         }
     }
-    write!(writer, "\n")?;
+    writeln!(writer)?;
     Ok(())
 }
