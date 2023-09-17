@@ -10,12 +10,14 @@ pub use self::unix::get_smbios;
 #[cfg(target_family = "windows")]
 pub use self::windows::get_smbios;
 use bytes::{Buf, Bytes};
-use once_cell::sync::Lazy;
 use smbios_derive::SMBIOS;
 use std::collections::HashMap;
+use std::sync::OnceLock;
 use uuid::Uuid;
 
-static TABLE_NAMES: Lazy<HashMap<u8, &'static str>> = Lazy::new(|| {
+static TABLE_NAMES: OnceLock<HashMap<u8, &'static str>> = OnceLock::new();
+
+fn init_table() -> HashMap<u8, &'static str> {
     let mut names = HashMap::new();
     names.insert(0, "BIOS Information");
     names.insert(1, "System Information");
@@ -67,13 +69,13 @@ static TABLE_NAMES: Lazy<HashMap<u8, &'static str>> = Lazy::new(|| {
     names.insert(126, "Inactive");
     names.insert(127, "End of Table");
     names
-});
+}
 
 pub fn get_table_name_by_id(id: u8) -> Option<&'static str> {
     if id >= 128 {
         Some("OEM-specific")
     } else {
-        TABLE_NAMES.get(&id).cloned()
+        TABLE_NAMES.get_or_init(init_table).get(&id).cloned()
     }
 }
 
