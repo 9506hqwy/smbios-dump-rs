@@ -1,13 +1,14 @@
 [package]
 name = "smbios"
-version = "0.1.0"
-authors = ["9506hqwy"]
-edition = "2021"
-rust-version = "1.70"
-repository = "https://github.com/9506hqwy/smbios-dump-rs"
-license = "MIT OR Apache-2.0"
 keywords = ["smbios"]
 categories = ["development-tools"]
+
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
 
 [dependencies]
 bytes = "1.4.0"
