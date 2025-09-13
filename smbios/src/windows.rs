@@ -1,9 +1,9 @@
 use super::RawSmbiosData;
 use bytes::Bytes;
-use windows::core::Error;
 use windows::Win32::System::SystemInformation::{
-    EnumSystemFirmwareTables, GetSystemFirmwareTable, FIRMWARE_TABLE_PROVIDER,
+    EnumSystemFirmwareTables, FIRMWARE_TABLE_PROVIDER, GetSystemFirmwareTable,
 };
+use windows::core::Error;
 
 pub const FIRMWARE_TABLE_ACPI: u32 = 0x41435049; // 'ACPI'
 pub const FIRMWARE_TABLE_FIRM: u32 = 0x4649524D; // 'FIRM'

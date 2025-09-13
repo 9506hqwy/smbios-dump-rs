@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use std::str::FromStr;
 use syn::{
-    parse, Expr, Field, Fields, GenericArgument, Ident, ItemStruct, Lit, PathArguments, Type,
+    Expr, Field, Fields, GenericArgument, Ident, ItemStruct, Lit, PathArguments, Type, parse,
 };
 
 #[proc_macro_derive(SMBIOS, attributes(smbios))]

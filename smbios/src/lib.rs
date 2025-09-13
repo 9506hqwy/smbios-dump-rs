@@ -278,7 +278,7 @@ impl Bios {
             self.system_bios_major_release(),
             self.system_bios_minor_release(),
         ) {
-            return Some(format!("{}.{}", major, minor));
+            return Some(format!("{major}.{minor}"));
         }
 
         None
@@ -289,7 +289,7 @@ impl Bios {
             self.embedded_ctrl_firmware_major_release(),
             self.embedded_ctrl_firmware_minor_release(),
         ) {
-            return Some(format!("{}.{}", major, minor));
+            return Some(format!("{major}.{minor}"));
         }
 
         None
@@ -2685,7 +2685,7 @@ impl TpmDevice {
 
     pub fn spec_version(&self) -> Option<String> {
         if let (Some(major), Some(minor)) = (self.major_spec_version(), self.minor_spec_version()) {
-            return Some(format!("{}.{}", major, minor));
+            return Some(format!("{major}.{minor}"));
         }
 
         None

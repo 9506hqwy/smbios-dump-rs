@@ -339,7 +339,7 @@ fn dump_raw(table: &RawSmbiosTable, writer: &mut impl Write) -> std::io::Result<
 
             // String
             if let Ok(s) = String::from_utf8(bytes.to_vec()) {
-                writeln!(writer, "\t\t{}", s)?;
+                writeln!(writer, "\t\t{s}")?;
             }
         }
     }
@@ -677,7 +677,7 @@ fn dump_type9(table: &SystemSlots, writer: &mut impl Write) -> std::io::Result<(
     write_kv!(writer, "Peer Devices", table.peer_grouping_count());
     if let Some(peers) = table.peer_groups() {
         for (i, peer) in peers.iter().enumerate() {
-            let key = format!("Peer Device {}", i);
+            let key = format!("Peer Device {i}");
             write_bus_address(
                 writer,
                 &key,
@@ -731,7 +731,7 @@ fn dump_type11(
     write_title!(writer, get_table_name_by_id(11).unwrap());
     if let Some(count) = table.count() {
         for i in 1..=count {
-            let key = format!("String {}", i);
+            let key = format!("String {i}");
             write_kv!(writer, key, raw.get_string_by_index(i));
         }
     }
@@ -747,7 +747,7 @@ fn dump_type12(
     write_title!(writer, get_table_name_by_id(12).unwrap());
     if let Some(count) = table.count() {
         for i in 1..=count {
-            let key = format!("Option {}", i);
+            let key = format!("Option {i}");
             write_kv!(writer, key, raw.get_string_by_index(i));
         }
     }
@@ -1546,10 +1546,10 @@ fn memory_module_size(value: Option<u8>) -> Option<String> {
         };
 
         match v & 0x7F {
-            0x7D => format!("Not Determinable {}", conn),
-            0x7E => format!("Disabled {}", conn),
+            0x7D => format!("Not Determinable {conn}"),
+            0x7E => format!("Disabled {conn}"),
             0x7F => "Not Installed".to_string(),
-            v => format!("{} MB {}", v, conn),
+            v => format!("{v} MB {conn}"),
         }
     })
 }
@@ -1601,7 +1601,7 @@ fn write_cache(
 fn write_bytearray(writer: &mut impl Write, bytes: &[u8]) -> std::io::Result<()> {
     write!(writer, "\t\t")?;
     for (i, byte) in bytes.iter().enumerate() {
-        write!(writer, "{:02X}", byte)?;
+        write!(writer, "{byte:02X}")?;
 
         let num = i + 1;
         if num != 1 && (num % 16) == 0 && num < bytes.len() {
