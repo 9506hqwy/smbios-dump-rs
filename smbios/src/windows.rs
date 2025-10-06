@@ -25,14 +25,14 @@ fn enum_system_firmware_table(signature: u32) -> Result<Vec<u32>, Error> {
 
     let size = unsafe { EnumSystemFirmwareTables(sig, None) };
     if size == 0 {
-        return Err(Error::from_win32());
+        return Err(Error::from_thread());
     }
 
     let mut buffer = vec![0u8; size as usize];
 
     let size = unsafe { EnumSystemFirmwareTables(sig, Some(buffer.as_mut_slice())) };
     if size == 0 {
-        return Err(Error::from_win32());
+        return Err(Error::from_thread());
     }
 
     Ok(buffer
@@ -48,14 +48,14 @@ fn get_system_firmware_table(signature: u32, table_id: u32) -> Result<Vec<u8>, E
 
     let size = unsafe { GetSystemFirmwareTable(sig, table_id, None) };
     if size == 0 {
-        return Err(Error::from_win32());
+        return Err(Error::from_thread());
     }
 
     let mut buffer = vec![0u8; size as usize];
 
     let size = unsafe { GetSystemFirmwareTable(sig, table_id, Some(buffer.as_mut_slice())) };
     if size == 0 {
-        return Err(Error::from_win32());
+        return Err(Error::from_thread());
     }
 
     Ok(buffer)
